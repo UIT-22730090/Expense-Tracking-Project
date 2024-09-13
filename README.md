@@ -1,1 +1,1 @@
-# Expense_Tracking_Project
+# Expense Tracking Project
