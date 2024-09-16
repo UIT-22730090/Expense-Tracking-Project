@@ -1,6 +1,8 @@
 # Expense Tracking Project - Nhóm 2
-Tên đồ án: Xây dựng ứng dụng Quản Lý Chi Tiêu
-Tech Stack: Python, Tinkter, Matplotlib, Seaborn, SQLLite
+
+Tên đồ án: Xây dựng ứng dụng Quản Lý Chi Tiêu.
+
+Tech Stack: Python, Tinkter, Matplotlib, Seaborn, SQLLite.
 | Nhóm   | Mã SV   | Họ và Tên        |
 |--------|---------|------------------|
 | Nhóm 2 | 22730080 | Huỳnh Công Lập   |
