@@ -1,6 +1,15 @@
 import tkinter as tk
 from tkinter import messagebox, ttk, TclError, PhotoImage, Button, Label
 from PIL import Image, ImageTk
+from tkcalendar import DateEntry
+import sqlite3
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import seaborn as sns
+import pandas as pd
+from expense_backend import *
+import os
+
 
 class LoginWindow:
     def __init__(self, master):
@@ -33,7 +42,18 @@ class LoginWindow:
         master.protocol("WM_DELETE_WINDOW", self.on_close)
         
     def login(self):
-        pass
+        username = self.username_entry.get()
+        password = self.password_entry.get()
+        user = login(username, password)
+        if user:
+            messagebox.showinfo("Login Successful", f"Welcome, {username}!")
+            self.master.destroy()
+            main_window = tk.Tk()
+            app = MainApp(main_window, username)
+            main_window.protocol("WM_DELETE_WINDOW", self.on_close)  # Set close protocol
+            main_window.mainloop()
+        else:
+            messagebox.showerror("Login Failed", "Invalid username or password")
 
     def forgot_password(self):
         messagebox.showinfo("Forgot Password", "Please contact support to reset your password.")
@@ -97,28 +117,354 @@ class MainApp:
             button.image = icon_tk
 
     def show_summary(self):
-        pass
+        for widget in self.info_frame.winfo_children():
+            widget.destroy()
+
+        # Retrieve all transactions and convert to DataFrame
+        transactions = get_transactions(self.username)
+        df = pd.DataFrame(transactions, columns=['Date', 'Type', 'Group', 'Name', 'Amount', 'Note'])
+
+        # Convert 'Date' to datetime and 'Amount' to numeric
+        df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+        df['Amount'] = pd.to_numeric(df['Amount'], errors='coerce')
+
+        # Extract month-year from the date
+        df['MonthYear'] = df['Date'].dt.to_period('M')
+
+        # Calculate totals and balance
+        total_income = df[df['Type'] == 'Thu nhập']['Amount'].sum()
+        total_expense = df[df['Type'] == 'Chi tiêu']['Amount'].sum()
+        balance = total_income - total_expense
+
+        # Create a frame for the totals box
+        totals_frame = tk.Frame(self.info_frame, borderwidth=2, relief='groove')
+        totals_frame.pack(pady=10, padx=10, fill=tk.X)
+
+        tk.Label(totals_frame, text=f"Total Income: {total_income:,.0f}", font=("Garamond", 12)).pack(pady=5)
+        tk.Label(totals_frame, text=f"Total Expense: {total_expense:,.0f}", font=("Garamond", 12)).pack(pady=5)
+        tk.Label(totals_frame, text=f"Balance: {balance:,.0f}", font=("Garamond", 12)).pack(pady=5)
+
+        # Group by month-year and type, then calculate total income and expenses
+        monthly_summary = df.groupby(['MonthYear', 'Type'])['Amount'].sum().unstack().fillna(0).reset_index()
+        monthly_summary.rename(columns={'Thu nhập': 'Total Income', 'Chi tiêu': 'Total Expense'}, inplace=True)
+        
+        # Calculate total income, expense, and balance by month-year
+        monthly_summary['Balance'] = monthly_summary['Total Income'] - monthly_summary['Total Expense']
+
+        # Plotting
+        fig, axs = plt.subplots(2, 1, figsize=(5, 5))
+
+        # Plot Total Income and Expenses
+        axs[0].plot(monthly_summary['MonthYear'].astype(str), monthly_summary['Total Income'], label='Total Income', color='green', marker='o')
+        axs[0].plot(monthly_summary['MonthYear'].astype(str), monthly_summary['Total Expense'], label='Total Expense', color='red', marker='o')
+        axs[0].set_title('Total Income and Expenses by Month')
+        axs[0].set_xlabel('Month-Year')
+        axs[0].set_ylabel('Amount')
+        axs[0].legend()
+
+        # Plot Balance by Month
+        axs[1].plot(monthly_summary['MonthYear'].astype(str), monthly_summary['Balance'], color='blue', marker='o')
+        axs[1].set_title('Balance by Month')
+        axs[1].set_xlabel('Month-Year')
+        axs[1].set_ylabel('Balance')
+
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+
+        # Embed the plot in Tkinter
+        canvas = FigureCanvasTkAgg(fig, master=self.info_frame)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
     def add_transaction(self):
-        pass
+        # Clear the current frame
+        for widget in self.info_frame.winfo_children():
+            widget.destroy()
+
+        # Create a frame to hold the inputs
+        input_frame = tk.Frame(self.info_frame)
+        input_frame.pack(pady=10)
+
+        # Arrange inputs in 3 rows
+        # First row: Date, Transaction Type, Group Name
+        tk.Label(input_frame, text="Date:", font=("Garamond", 12)).grid(row=0, column=0, padx=5, pady=5, sticky="e")
+        date_entry = DateEntry(input_frame)
+        date_entry.grid(row=0, column=1, padx=5, pady=5)
+
+        tk.Label(input_frame, text="Transaction Type:", font=("Garamond", 12)).grid(row=0, column=2, padx=5, pady=5, sticky="e")
+        transaction_type = ttk.Combobox(
+            input_frame, 
+            values=get_options_from_db("SELECT DISTINCT type_name FROM transaction_types")
+        )
+        transaction_type.grid(row=0, column=3, padx=5, pady=5)
+
+        tk.Label(input_frame, text="Group Name:", font=("Garamond", 12)).grid(row=0, column=4, padx=5, pady=5, sticky="e")
+        group_name = ttk.Combobox(
+            input_frame, 
+            values=get_options_from_db("SELECT DISTINCT group_name FROM transaction_types")
+        )
+        group_name.grid(row=0, column=5, padx=5, pady=5)
+
+        # Second row: Transaction Name, Amount, Note
+        tk.Label(input_frame, text="Transaction Name:", font=("Garamond", 12)).grid(row=1, column=0, padx=5, pady=5, sticky="e")
+        transaction_name = tk.Entry(input_frame)
+        transaction_name.grid(row=1, column=1, padx=5, pady=5)
+
+        tk.Label(input_frame, text="Amount:", font=("Garamond", 12)).grid(row=1, column=2, padx=5, pady=5, sticky="e")
+        amount = tk.Entry(input_frame)
+        amount.grid(row=1, column=3, padx=5, pady=5)
+
+        tk.Label(input_frame, text="Note:", font=("Garamond", 12)).grid(row=1, column=4, padx=5, pady=5, sticky="e")
+        note = tk.Entry(input_frame)
+        note.grid(row=1, column=5, padx=5, pady=5)
+
+        # Save transaction button
+        save_button = tk.Button(
+            self.info_frame, 
+            text="Save Transaction", 
+            command=lambda: self.save_transaction(
+                date_entry.get(), transaction_type.get(), group_name.get(), 
+                transaction_name.get(), amount.get(), note.get()
+            )
+        )
+        save_button.pack(pady=10)
+
+        # Creating a Treeview (table) to display transactions
+        columns = ('Date', 'Type', 'Group', 'Name', 'Amount', 'Note')
+        tree = ttk.Treeview(self.info_frame, columns=columns, show='headings')
+        tree.pack(fill=tk.BOTH, expand=True, pady=10)
+
+        # Define column headings
+        for col in columns:
+            tree.heading(col, text=col)
+            tree.column(col, anchor='center')
+
+        # Fetch and insert transactions into the table
+        transactions = get_transactions(self.username)
+        for transaction in transactions:
+            tree.insert('', 'end', values=transaction)
 
     def save_transaction(self, date, transaction_type, group_name, transaction_name, amount, note):
-        pass
+        """Handle the save transaction button click."""
+        # Add the transaction to the database
+        add_transactions(date, transaction_type, group_name, transaction_name, float(amount), note, self.username)
+        messagebox.showinfo("Success", "Transaction added successfully!")
+        # Refresh the transaction table
+        self.add_transaction()
 
     def show_statistics(self):
-        pass
+        # Clear the current frame
+        for widget in self.info_frame.winfo_children():
+            widget.destroy()
+
+        # Frame for displaying the charts
+        chart_frame = tk.Frame(self.info_frame)
+        chart_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Fetch data from the database
+        income_by_note = get_data("""
+                                SELECT note, SUM(amount)  
+                                FROM transactions 
+                                WHERE transaction_type = 'Thu nhập'
+                                GROUP BY note
+                                ORDER BY SUM(amount) DESC""")
+        income_by_group = get_data("""
+                                SELECT group_name, SUM(amount) 
+                                FROM transactions 
+                                WHERE transaction_type = 'Thu nhập'
+                                GROUP BY group_name
+                                ORDER BY SUM(amount) DESC""")
+        income_by_name = get_data("""
+                                SELECT transaction_name, SUM(amount) 
+                                FROM transactions 
+                                WHERE transaction_type = 'Thu nhập'
+                                GROUP BY transaction_name
+                                ORDER BY SUM(amount) DESC""")
+        expense_by_note = get_data("""
+                                SELECT note, SUM(amount)  
+                                FROM transactions 
+                                WHERE transaction_type = 'Chi tiêu'
+                                GROUP BY note
+                                ORDER BY SUM(amount) DESC""")
+        expense_by_group = get_data("""
+                                SELECT group_name, SUM(amount) 
+                                FROM transactions 
+                                WHERE transaction_type = 'Chi tiêu'
+                                GROUP BY group_name
+                                ORDER BY SUM(amount) DESC""")
+        expense_by_name = get_data("""
+                                SELECT transaction_name, SUM(amount) 
+                                FROM transactions 
+                                WHERE transaction_type = 'Chi tiêu'
+                                GROUP BY transaction_name
+                                ORDER BY SUM(amount) DESC""")
+
+        # Create a figure with subplots
+        fig, axs = plt.subplots(2, 3, figsize=(15, 10))  # Adjust size as needed
+        #fig.tight_layout(pad=10)  # Adjust padding between subplots
+        fig.subplots_adjust(left=0.05, right=0.95, top=0.90, bottom=0.10, wspace=0.2, hspace=1)
+
+        # Display the charts
+        self.display_bar_chart(axs[0, 0], income_by_group, "Total Income by Group")
+        self.display_bar_chart(axs[0, 1], income_by_name, "Total Income by Name")
+        self.display_bar_chart(axs[0, 2], income_by_note, "Detail Total Income")
+
+        self.display_bar_chart(axs[1, 0], expense_by_group, "Expense by Group")
+        self.display_bar_chart(axs[1, 1], expense_by_name, "Expense by Name")
+        self.display_bar_chart(axs[1, 2], expense_by_note, "Detail Total Expense")
+
+        # Convert the figure to a Tkinter canvas and display it
+        canvas = FigureCanvasTkAgg(fig, master=self.info_frame)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
     def display_bar_chart(self, ax, data, title, palette='viridis'):
-        pass
+        """Display a bar chart in the given axes."""
+        df = pd.DataFrame(data, columns=['Label', 'Amount'])
+        sns.barplot(x='Label', y='Amount', data=df, ax=ax, palette=palette)
+        ax.set_title(title)
+        ax.set_xlabel('')
+        ax.set_ylabel('Amount')
+
+        # Setting ticks explicitly
+        ax.set_xticks(range(len(df['Label'])))
+        ax.set_xticklabels(df['Label'], rotation=45, ha='right')
 
     def search_transaction(self):
-        pass
+        # Clear the current frame
+        for widget in self.info_frame.winfo_children():
+            widget.destroy()
+
+        # Add a title or instruction label
+        tk.Label(self.info_frame, text="Search Transactions", font=("Garamond", 12)).grid(row=0, columnspan=8, pady=10)
+
+        # Transaction Name Entry
+        tk.Label(self.info_frame, text="Transaction Name:", font=("Garamond", 10)).grid(row=1, column=0, padx=5, pady=5, sticky='e')
+        transaction_name_combobox = ttk.Combobox(self.info_frame, values=get_unique_values("transaction_name") + ["All"], state="readonly")
+        transaction_name_combobox.current(len(get_unique_values("transaction_name")))  # Default to "All"
+        transaction_name_combobox.grid(row=1, column=1, padx=5, pady=5)
+
+        # Transaction Type Combobox
+        tk.Label(self.info_frame, text="Transaction Type:", font=("Garamond", 10)).grid(row=1, column=2, padx=5, pady=5, sticky='e')
+        transaction_type_combobox = ttk.Combobox(self.info_frame, values=get_unique_values("transaction_type") + ["All"], state="readonly")
+        transaction_type_combobox.current(len(get_unique_values("transaction_type")))  # Default to "All"
+        transaction_type_combobox.grid(row=1, column=3, padx=5, pady=5)
+
+        # Group Name Combobox
+        tk.Label(self.info_frame, text="Group Name:", font=("Garamond", 10)).grid(row=1, column=4, padx=5, pady=5, sticky='e')
+        group_name_combobox = ttk.Combobox(self.info_frame, values=get_unique_values("group_name") + ["All"], state="readonly")
+        group_name_combobox.current(len(get_unique_values("group_name")))  # Default to "All"
+        group_name_combobox.grid(row=1, column=5, padx=5, pady=5)
+
+        # Date Range Combobox
+        tk.Label(self.info_frame, text="Date Range:", font=("Garamond", 10)).grid(row=1, column=6, padx=5, pady=5, sticky='e')
+        date_range_combobox = ttk.Combobox(self.info_frame, values=["Today", "Last 7 Days", "Last 30 Days", "All Time"], state="readonly")
+        date_range_combobox.current(3)  # Default to "All Time"
+        date_range_combobox.grid(row=1, column=7, padx=5, pady=5)
+
+        # Search Button
+        search_button = tk.Button(self.info_frame, text="Search", command=lambda: self.perform_search(
+            transaction_name_combobox.get(),
+            transaction_type_combobox.get(),
+            group_name_combobox.get(),
+            date_range_combobox.get()
+        ))
+        search_button.grid(row=2, columnspan=8, pady=10)
+
+        # Table for displaying the search results
+        self.results_table = ttk.Treeview(self.info_frame, columns=("Date", "Type", "Group", "Name", "Amount", "Note"), show='headings')
+        self.results_table.heading("Date", text="Date")
+        self.results_table.heading("Type", text="Type")
+        self.results_table.heading("Group", text="Group")
+        self.results_table.heading("Name", text="Name")
+        self.results_table.heading("Amount", text="Amount")
+        self.results_table.heading("Note", text="Note")
+        self.results_table.grid(row=3, columnspan=8, padx=5, pady=10, sticky='nsew')
+
+        # Configure row and column weights for resizing
+        for col in range(8):
+            self.info_frame.grid_columnconfigure(col, weight=1)
+        self.info_frame.grid_rowconfigure(3, weight=1)
 
     def perform_search(self, transaction_name, transaction_type, group_name, date_range):
-        pass
+        """Collects filter values, performs the search, and displays results."""
+        # Fetch search results using the filters
+        search_results = search_transactions(transaction_name, transaction_type, group_name, date_range)
+
+        # Clear previous search results in the table
+        for item in self.results_table.get_children():
+            self.results_table.delete(item)
+
+        # Insert new results into the table
+        for result in search_results:
+            self.results_table.insert("", "end", values=result)
 
     def show_personal_info(self):
-        pass
+        """Display personal information in a popup window."""
+        # Create a new Toplevel window using the correct main window reference
+        popup = tk.Toplevel(self.master)  # Use self.master or the correct reference to the main window
+        popup.title("Thông tin cá nhân")  # Title of the popup window
+
+        # Load the image (replace 'path_to_image.png' with your actual image path)
+        try:
+            # For PNG, GIF, and other Tkinter-supported formats:
+            img = PhotoImage(file=r'Image/user.png')
+            # If using PIL for JPG, etc.:
+            # pil_image = Image.open('path_to_image.jpg')
+            # img = ImageTk.PhotoImage(pil_image)
+        except Exception as e:
+            print(f"Error loading image: {e}")
+            img = None  # Handle the case where the image can't be loaded
+
+        # Create and place the button with image
+        if img:  # Check if the image loaded successfully
+            info_button = Button(popup, text="Thông tin cá nhân", image=img, compound='top', command=lambda: None)
+            info_button.image = img  # Keep a reference to avoid garbage collection
+            info_button.pack(pady=10)  # Adjust padding as needed
+
+        # Display personal information content in the popup window
+        try:
+            info = get_personal_info(self.username)  # Fetch personal information
+            Label(popup, text=f"Tên: {info['full_name']}", font=("Garamond", 14)).pack(anchor='w', padx=10, pady=5)
+            Label(popup, text=f"Ngày sinh: {info['birthday']}", font=("Garamond", 14)).pack(anchor='w', padx=10, pady=5)
+            Label(popup, text=f"Email: {info['email']}", font=("Garamond", 14)).pack(anchor='w', padx=10, pady=5)
+            Label(popup, text=f"Số điện thoại: {info['phone_number']}", font=("Garamond", 14)).pack(anchor='w', padx=10, pady=5)
+        except Exception as e:
+            print(f"Error fetching personal information: {e}")
+
+        # Add Log Out Button
+        logout_button = Button(popup, text="Log Out", command=self.confirm_logout)
+        logout_button.pack(pady=10)
+
+        
+    #def show_personal_info(self):
+        #for widget in self.info_frame.winfo_children():
+            #widget.destroy()
+
+        # Simulated personal info fetching
+        #info = get_personal_info(self.username)
+
+        # Display user image and personal information
+        #image_path = info.get('image_path')
+        #if image_path:
+            #try:
+                #img = Image.open(image_path)
+                #img = img.resize((100, 100), Image.LANCZOS)
+                #img_tk = ImageTk.PhotoImage(img)
+                #img_label = tk.Label(self.info_frame, image=img_tk)
+                #img_label.image = img_tk
+                #img_label.pack(pady=10)
+            #except Exception as e:
+                #print(f"Error loading image: {e}")
+                #tk.Label(self.info_frame, text="Error loading image.", font=("Garamond", 12)).pack(pady=10)
+
+        #for key, value in info.items():
+            #if key != 'image_path':
+                #tk.Label(self.info_frame, text=f"{key.capitalize()}: {value}", font=("Garamond", 12)).pack(pady=5)
+
+        # Add Log Out Button
+        #logout_button = tk.Button(self.info_frame, text="Log Out", command=self.confirm_logout)
+        #logout_button.pack(pady=10)
         
     def confirm_logout(self):
         """Prompt the user to confirm log out"""
@@ -132,3 +478,10 @@ class MainApp:
         login_window = tk.Tk()
         app = LoginWindow(login_window)
         login_window.mainloop()
+     
+if __name__ == "__main__":
+    create_tables()  
+    root = tk.Tk()
+    app = LoginWindow(root)
+    root.protocol("WM_DELETE_WINDOW", app.on_close)
+    root.mainloop()
