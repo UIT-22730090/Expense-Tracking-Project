@@ -3,6 +3,7 @@ import pandas as pd
 
 DATABASE = 'expense_manager.db' 
 
+#create_table
 def create_tables():
     """Create necessary tables if they do not exist."""
     conn = sqlite3.connect(DATABASE)
@@ -41,7 +42,7 @@ def create_tables():
     conn.commit()
     conn.close()
 
-
+#login_account
 def login(username, password):
     """Check if the user exists with the provided username and password."""
     conn = sqlite3.connect(DATABASE)
@@ -51,7 +52,7 @@ def login(username, password):
     conn.close()
     return user
 
-
+#add_transactions
 def add_transactions(transaction_date, transaction_type, group_name, transaction_name, amount, note, username):
     """Add a transaction to the database."""
     try:
@@ -65,6 +66,7 @@ def add_transactions(transaction_date, transaction_type, group_name, transaction
     except sqlite3.Error as e:
         print(f"Database error: {e}")
 
+#get_summary
 def get_summary(username):
     """Retrieve a summary of income and expenses."""
     conn = sqlite3.connect(DATABASE)
@@ -79,7 +81,7 @@ def get_summary(username):
     result = cursor.fetchone()
     conn.close()
     return result
-
+#get_transactions
 def get_transactions(username):
     """Retrieve all transactions for the given username."""
     conn = sqlite3.connect(DATABASE)
@@ -92,7 +94,7 @@ def get_transactions(username):
     transactions = cursor.fetchall()
     conn.close()
     return transactions
-
+#search_transactions
 def search_transactions(transaction_name=None, transaction_type="All", group_name="All", date_range="All"):
     """Search transactions based on filters: transaction name, transaction type, group name, and date range."""
     conn = sqlite3.connect(DATABASE)
@@ -135,6 +137,7 @@ def search_transactions(transaction_name=None, transaction_type="All", group_nam
     conn.close()
     return results
 
+#get_unique_values
 def get_unique_values(column_name):
     """Fetch unique values for a given column from the transactions table."""
     conn = sqlite3.connect(DATABASE)
@@ -144,7 +147,7 @@ def get_unique_values(column_name):
     results = [row[0] for row in cursor.fetchall()]
     conn.close()
     return results
-
+#get_personal_info
 def get_personal_info(username):
     """Retrieve personal information for the given username."""
     conn = sqlite3.connect(DATABASE)
@@ -158,6 +161,7 @@ def get_personal_info(username):
     conn.close()
     return dict(zip(['full_name', 'birthday', 'email', 'phone_number'], info))
 
+#et_options_from_db
 def get_options_from_db(query):
     """Get options from the database for dropdowns."""
     conn = sqlite3.connect(DATABASE)
@@ -167,6 +171,7 @@ def get_options_from_db(query):
     conn.close()
     return options
 
+# get_data
 def get_data(query):
     """Retrieve data based on the provided SQL query."""
     conn = sqlite3.connect(DATABASE)  # Replace DATABASE with your actual database path
