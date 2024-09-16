@@ -27,8 +27,8 @@
 - **Xử Lý Hình Ảnh**: `Pillow` để xử lý các biểu tượng và hình ảnh người dùng.
 
 ## Hướng dẫn sử dụng
-- **Đăng nhập**: Bắt đầu bằng cách đăng nhập vào ứng 
-- **Thêm giao dịch**: Sử dụng nút "Thêm giao dịch" để thêm giao dịch 
+- **Đăng nhập**: Bắt đầu bằng cách đăng nhập vào ứng.
+- **Thêm giao dịch**: Sử dụng nút "Thêm giao dịch" để thêm giao dịch. 
 - **Xem báo cáo**: Kiểm tra các phần "Tổng quan" và "Thống Kê" để có cái nhìn tổng quan về thói quen tài chính của bạn.
 
 
