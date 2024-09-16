@@ -1,5 +1,6 @@
 import sqlite3
 
+    #Create database
 def create_database():
     conn = sqlite3.connect('expense_manager.db')
     cursor = conn.cursor()
