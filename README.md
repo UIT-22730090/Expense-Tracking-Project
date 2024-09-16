@@ -10,3 +10,23 @@ Tech Stack: Python, Tinkter, Matplotlib, Seaborn, SQLLite.
 |        | 22730075 | Nguyễn Quốc Huy  |
 |        | 22730084 | Trần Thanh Nam   |
 |        | 22730072 | Nguyễn Phúc Hưng |
+
+Tổng Quan
+Đồ án này là một Ứng Dụng Quản Lý Chi Tiêu Cá Nhân được xây dựng bằng Python. Ứng dụng cho phép người dùng theo dõi thu nhập và chi tiêu, xem thống kê và quản lý tài chính cá nhân một cách hiệu quả.
+
+Tính Năng
+Thêm Giao Dịch: Ghi lại các khoản thu nhập hoặc chi tiêu hàng ngày của bạn.
+Xem Tổng Quan: Hiển thị tất cả các giao dịch, bao gồm tổng thu nhập, chi tiêu và số dư.
+Thống Kê: Xem chi tiết thống kê về dữ liệu tài chính của bạn, bao gồm phân tích theo tháng.
+Tìm Kiếm Giao Dịch: Dễ dàng tìm kiếm giao dịch theo tên, ngày hoặc nhóm.
+Thông Tin Cá Nhân: Xem và cập nhật thông tin cá nhân.
+
+Công Nghệ Sử Dụng
+Backend: Python với SQLite cho việc lưu trữ dữ liệu.
+Frontend: Tkinter để tạo giao diện đồ họa (GUI).
+Xử Lý Hình Ảnh: Pillow để xử lý các biểu tượng và hình ảnh người dùng.
+
+Hướng Dẫn Sử Dụng
+Đăng Nhập: Bắt đầu bằng cách đăng nhập vào ứng dụng.
+Thêm Giao Dịch: Sử dụng nút "Thêm Giao Dịch" để thêm các giao dịch mới.
+Xem Báo Cáo: Kiểm tra các phần "Tổng Quan" và "Thống Kê" để có cái nhìn tổng quan về thói quen tài chính của bạn.
