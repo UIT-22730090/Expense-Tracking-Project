@@ -56,10 +56,69 @@ class LoginWindow:
             messagebox.showerror("Login Failed", "Invalid username or password")
 
     def forgot_password(self):
-        messagebox.showinfo("Forgot Password", "Please contact support to reset your password.")
+        messagebox.showinfo("Forgot Password", "functionality coming soon.")
 
     def register(self):
-        messagebox.showinfo("Register", "Register functionality coming soon.")
+        register_window = tk.Toplevel(self.master)
+        register_window.title("Register")
+        register_window.geometry("400x500")
+
+        # Create input fields
+        tk.Label(register_window, text="Full Name:").grid(row=0, column=0, padx=10, pady=5, sticky="e")
+        full_name_entry = tk.Entry(register_window)
+        full_name_entry.grid(row=0, column=1, padx=10, pady=5)
+
+        tk.Label(register_window, text="Username:").grid(row=1, column=0, padx=10, pady=5, sticky="e")
+        username_entry = tk.Entry(register_window)
+        username_entry.grid(row=1, column=1, padx=10, pady=5)
+
+        tk.Label(register_window, text="Password:").grid(row=2, column=0, padx=10, pady=5, sticky="e")
+        password_entry = tk.Entry(register_window, show="*")
+        password_entry.grid(row=2, column=1, padx=10, pady=5)
+
+        tk.Label(register_window, text="Re-enter Password:").grid(row=3, column=0, padx=10, pady=5, sticky="e")
+        re_password_entry = tk.Entry(register_window, show="*")
+        re_password_entry.grid(row=3, column=1, padx=10, pady=5)
+
+        tk.Label(register_window, text="Birthday (YYYY-MM-DD):").grid(row=4, column=0, padx=10, pady=5, sticky="e")
+        birthday_entry = DateEntry(register_window, date_pattern="yyyy-mm-dd")
+        birthday_entry.grid(row=4, column=1, padx=10, pady=5)
+
+        tk.Label(register_window, text="Email:").grid(row=5, column=0, padx=10, pady=5, sticky="e")
+        email_entry = tk.Entry(register_window)
+        email_entry.grid(row=5, column=1, padx=10, pady=5)
+
+        tk.Label(register_window, text="Phone Number:").grid(row=6, column=0, padx=10, pady=5, sticky="e")
+        phone_entry = tk.Entry(register_window)
+        phone_entry.grid(row=6, column=1, padx=10, pady=5)
+
+        # Variable to store the selected option for sample transaction
+        sample_var = tk.StringVar(value="Yes")
+
+        tk.Label(register_window, text="Create Sample Transaction:").grid(row=7, column=0, padx=10, pady=5, sticky="e")
+        tk.Radiobutton(register_window, text="Yes", variable=sample_var, value="Yes").grid(row=7, column=1, padx=10, pady=5, sticky="w")
+        tk.Radiobutton(register_window, text="No", variable=sample_var, value="No").grid(row=7, column=1, padx=10, pady=5, sticky="e")
+
+        def submit_action():
+            # Retrieve the most recent input from the entry fields and radio button
+            full_name = full_name_entry.get().strip()
+            username = username_entry.get().strip()
+            password = password_entry.get().strip()
+            re_password = re_password_entry.get().strip()
+            birthday = birthday_entry.get().strip()
+            email = email_entry.get().strip()
+            phone_number = phone_entry.get().strip()
+            sample = sample_var.get()
+            # Call the register_user function with the latest input
+            # Call the register_user function with the latest input
+            if register_user(full_name, username, password, re_password, birthday, email, phone_number):
+                if sample == "Yes":
+                    add_sample_transaction(username)
+                register_window.destroy()
+
+        submit_button = tk.Button(register_window, text="Submit", command=submit_action)
+        submit_button.grid(row=8, column=0, columnspan=2, pady=10)
+        
 
     def on_close(self):
         if messagebox.askokcancel("Quit", "Do you want to quit?"):
@@ -229,15 +288,31 @@ class MainApp:
         )
         save_button.pack(pady=10)
 
+        # Create a frame for the Treeview and scrollbars
+        tree_frame = tk.Frame(self.info_frame)
+        tree_frame.pack(fill=tk.BOTH, expand=True, pady=10)
+
         # Creating a Treeview (table) to display transactions
         columns = ('Date', 'Type', 'Group', 'Name', 'Amount', 'Note')
-        tree = ttk.Treeview(self.info_frame, columns=columns, show='headings')
-        tree.pack(fill=tk.BOTH, expand=True, pady=10)
+        tree = ttk.Treeview(tree_frame, columns=columns, show='headings')
+        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         # Define column headings
         for col in columns:
             tree.heading(col, text=col)
             tree.column(col, anchor='center')
+
+        # Create vertical scrollbar
+        v_scroll = tk.Scrollbar(tree_frame, orient="vertical", command=tree.yview)
+        v_scroll.pack(side="right", fill="y")
+
+        # Create horizontal scrollbar
+        h_scroll = tk.Scrollbar(tree_frame, orient="horizontal", command=tree.xview)
+        h_scroll.pack(side="bottom", fill="x")
+
+        # Configure Treeview to use the scrollbars
+        tree.configure(yscrollcommand=v_scroll.set)
+        tree.configure(xscrollcommand=h_scroll.set)
 
         # Fetch and insert transactions into the table
         transactions = get_transactions(self.username)
@@ -371,21 +446,39 @@ class MainApp:
         ))
         search_button.grid(row=2, columnspan=8, pady=10)
 
-        # Table for displaying the search results
-        self.results_table = ttk.Treeview(self.info_frame, columns=("Date", "Type", "Group", "Name", "Amount", "Note"), show='headings')
+        # Create a frame for the Treeview and scrollbars
+        tree_frame = tk.Frame(self.info_frame)
+        tree_frame.grid(row=3, columnspan=8, padx=5, pady=10, sticky='nsew')
+
+        # Create Treeview widget
+        self.results_table = ttk.Treeview(tree_frame, columns=("Date", "Type", "Group", "Name", "Amount", "Note"), show='headings')
         self.results_table.heading("Date", text="Date")
         self.results_table.heading("Type", text="Type")
         self.results_table.heading("Group", text="Group")
         self.results_table.heading("Name", text="Name")
         self.results_table.heading("Amount", text="Amount")
         self.results_table.heading("Note", text="Note")
-        self.results_table.grid(row=3, columnspan=8, padx=5, pady=10, sticky='nsew')
+
+        # Create vertical scrollbar
+        v_scroll = tk.Scrollbar(tree_frame, orient="vertical", command=self.results_table.yview)
+        v_scroll.pack(side="right", fill="y")
+
+        # Create horizontal scrollbar
+        h_scroll = tk.Scrollbar(tree_frame, orient="horizontal", command=self.results_table.xview)
+        h_scroll.pack(side="bottom", fill="x")
+
+        # Configure Treeview to use the scrollbars
+        self.results_table.configure(yscrollcommand=v_scroll.set)
+        self.results_table.configure(xscrollcommand=h_scroll.set)
+
+        # Pack Treeview widget
+        self.results_table.pack(fill=tk.BOTH, expand=True)
 
         # Configure row and column weights for resizing
         for col in range(8):
             self.info_frame.grid_columnconfigure(col, weight=1)
         self.info_frame.grid_rowconfigure(3, weight=1)
-
+        
     def perform_search(self, transaction_name, transaction_type, group_name, date_range):
         """Collects filter values, performs the search, and displays results."""
         # Fetch search results using the filters
@@ -435,9 +528,8 @@ class MainApp:
         # Add Log Out Button
         logout_button = Button(popup, text="Log Out", command=self.confirm_logout)
         logout_button.pack(pady=10)
-
-        
-    #def show_personal_info(self):
+    
+    def show_personal_info_V1(self):
         #for widget in self.info_frame.winfo_children():
             #widget.destroy()
 
@@ -465,6 +557,7 @@ class MainApp:
         # Add Log Out Button
         #logout_button = tk.Button(self.info_frame, text="Log Out", command=self.confirm_logout)
         #logout_button.pack(pady=10)
+        pass
         
     def confirm_logout(self):
         """Prompt the user to confirm log out"""
