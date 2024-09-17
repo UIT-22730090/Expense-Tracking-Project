@@ -196,12 +196,34 @@ class MainApp:
         balance = total_income - total_expense
 
         # Create a frame for the totals box
-        totals_frame = tk.Frame(self.info_frame, borderwidth=2, relief='groove')
+        totals_frame = tk.Frame(self.info_frame, borderwidth=0, relief='groove')
         totals_frame.pack(pady=10, padx=10, fill=tk.X)
 
-        tk.Label(totals_frame, text=f"Total Income: {total_income:,.0f}", font=("Garamond", 12)).pack(pady=5)
-        tk.Label(totals_frame, text=f"Total Expense: {total_expense:,.0f}", font=("Garamond", 12)).pack(pady=5)
-        tk.Label(totals_frame, text=f"Balance: {balance:,.0f}", font=("Garamond", 12)).pack(pady=5)
+        # Configure grid in totals_frame
+        totals_frame.grid_rowconfigure(0, weight=1)
+        totals_frame.grid_columnconfigure((0, 1, 2), weight=1)
+
+        # Add labels to the same row in the totals_frame
+        tk.Label(
+            totals_frame,
+            text=f"Total Income: {total_income:,.0f}",
+            font=("Garamond", 15, "bold"),
+            fg="black"
+        ).grid(row=0, column=0, padx=5, pady=5, sticky='ew')
+
+        tk.Label(
+            totals_frame,
+            text=f"Total Expense: {total_expense:,.0f}",
+            font=("Garamond", 15, "bold"),
+            fg="black"
+        ).grid(row=0, column=1, padx=5, pady=5, sticky='ew')
+
+        tk.Label(
+            totals_frame,
+            text=f"Balance: {balance:,.0f}",
+            font=("Garamond", 15, "bold"),
+            fg=get_text_color(balance)
+        ).grid(row=0, column=2, padx=5, pady=5, sticky='ew')
 
         # Group by month-year and type, then calculate total income and expenses
         monthly_summary = df.groupby(['MonthYear', 'Type'])['Amount'].sum().unstack().fillna(0).reset_index()
@@ -234,6 +256,7 @@ class MainApp:
         canvas = FigureCanvasTkAgg(fig, master=self.info_frame)
         canvas.draw()
         canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
 
     def add_transaction(self):
         # Clear the current frame
@@ -411,7 +434,7 @@ class MainApp:
             widget.destroy()
 
         # Add a title or instruction label
-        tk.Label(self.info_frame, text="Search Transactions", font=("Garamond", 12)).grid(row=0, columnspan=8, pady=10)
+        tk.Label(self.info_frame, text="Search Transactions", font=("Garamond", 12)).grid(row=0, columnspan=9, pady=10)
 
         # Transaction Name Entry
         tk.Label(self.info_frame, text="Transaction Name:", font=("Garamond", 10)).grid(row=1, column=0, padx=5, pady=5, sticky='e')
@@ -444,20 +467,22 @@ class MainApp:
             group_name_combobox.get(),
             date_range_combobox.get()
         ))
-        search_button.grid(row=2, columnspan=8, pady=10)
+        search_button.grid(row=2, columnspan=9, pady=10)
 
         # Create a frame for the Treeview and scrollbars
         tree_frame = tk.Frame(self.info_frame)
-        tree_frame.grid(row=3, columnspan=8, padx=5, pady=10, sticky='nsew')
+        tree_frame.grid(row=3, columnspan=9, padx=5, pady=10, sticky='nsew')
 
         # Create Treeview widget
-        self.results_table = ttk.Treeview(tree_frame, columns=("Date", "Type", "Group", "Name", "Amount", "Note"), show='headings')
+        self.results_table = ttk.Treeview(tree_frame, columns=("ID", "Date", "Type", "Group", "Name", "Amount", "Note", "Actions"), show='headings')
+        self.results_table.heading("ID", text="ID")
         self.results_table.heading("Date", text="Date")
         self.results_table.heading("Type", text="Type")
         self.results_table.heading("Group", text="Group")
         self.results_table.heading("Name", text="Name")
         self.results_table.heading("Amount", text="Amount")
         self.results_table.heading("Note", text="Note")
+        self.results_table.heading("Actions", text="Actions")  # New heading for the button
 
         # Create vertical scrollbar
         v_scroll = tk.Scrollbar(tree_frame, orient="vertical", command=self.results_table.yview)
@@ -475,10 +500,10 @@ class MainApp:
         self.results_table.pack(fill=tk.BOTH, expand=True)
 
         # Configure row and column weights for resizing
-        for col in range(8):
+        for col in range(9):
             self.info_frame.grid_columnconfigure(col, weight=1)
         self.info_frame.grid_rowconfigure(3, weight=1)
-        
+
     def perform_search(self, transaction_name, transaction_type, group_name, date_range):
         """Collects filter values, performs the search, and displays results."""
         # Fetch search results using the filters
@@ -488,9 +513,40 @@ class MainApp:
         for item in self.results_table.get_children():
             self.results_table.delete(item)
 
-        # Insert new results into the table
+        # Insert new results into the table with a "Delete" link
         for result in search_results:
-            self.results_table.insert("", "end", values=result)
+            transaction_id, date, type_, group, name, amount, note = result
+            # Add a delete link text to the "Actions" column
+            self.results_table.insert("", "end", values=(transaction_id, date, type_, group, name, amount, note, "Delete"), tags=("action",))
+
+        # Bind click event to the "Delete" link text
+        self.results_table.bind("<ButtonRelease-1>", self.handle_action_click)
+        
+    def handle_action_click(self, event):
+        """Handle click events on the 'Actions' column."""
+        item = self.results_table.identify_row(event.y)
+        if not item:
+            return
+
+        col = self.results_table.identify_column(event.x)
+        if col == "#8":  # Check if the click was in the 'Actions' column
+            transaction_id = self.results_table.item(item, "values")[0]
+            self.confirm_delete(transaction_id)
+
+    def confirm_delete(self, transaction_id):
+        """Ask for confirmation before deleting a row."""
+        if messagebox.askyesno("Confirm Delete", "Are you sure you want to delete this transaction?"):
+            self.delete_row(transaction_id)
+        
+    def delete_row(self, transaction_id):
+        """Delete a row from the Treeview and database based on the transaction ID."""
+        # Remove from Treeview
+        for item in self.results_table.get_children():
+            if self.results_table.item(item, "values")[0] == transaction_id:
+                self.results_table.delete(item)
+                break
+        # Remove from database using the external module function
+        delete_from_database(transaction_id)
 
     def show_personal_info(self):
         """Display personal information in a popup window."""
