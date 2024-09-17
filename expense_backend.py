@@ -256,6 +256,10 @@ def add_transactions(transaction_date, transaction_type, group_name, transaction
     except sqlite3.Error as e:
         messagebox.showerror("Database Error", f"An error occurred: {e}")  # Error message
 
+def get_text_color(value):
+    """Return color based on the value."""
+    return "red" if value < 0 else "green"
+
 #get_summary
 def get_summary(username):
     """Retrieve a summary of income and expenses."""
@@ -271,6 +275,7 @@ def get_summary(username):
     result = cursor.fetchone()
     conn.close()
     return result
+
 #get_transactions
 def get_transactions(username):
     """Retrieve all transactions for the given username."""
@@ -293,7 +298,7 @@ def search_transactions(transaction_name=None, transaction_type="All", group_nam
 
     # Base query
     query = """
-        SELECT transaction_date, transaction_type, group_name, transaction_name, amount, note
+        SELECT id, transaction_date, transaction_type, group_name, transaction_name, amount, note
         FROM transactions
         WHERE 1=1
     """
@@ -328,7 +333,28 @@ def search_transactions(transaction_name=None, transaction_type="All", group_nam
     conn.close()
     return results
 
-
+def delete_from_database(transaction_id):
+    """Remove the transaction from the database based on the transaction ID."""
+    try:
+        # Establish a connection to the database
+        connection = sqlite3.connect(DATABASE)  # Replace with your database file or connection details
+        cursor = connection.cursor()
+        
+        # Execute the DELETE command
+        cursor.execute("DELETE FROM transactions WHERE id=?", (transaction_id,))
+        
+        # Commit the changes
+        connection.commit()
+        
+        # Close the cursor and connection
+        cursor.close()
+        connection.close()
+        
+        print(f"Transaction with ID {transaction_id} has been deleted from the database.")
+    
+    except sqlite3.Error as e:
+        print(f"An error occurred: {e}")
+        
 #get_unique_values
 def get_unique_values(column_name):
     """Fetch unique values for a given column from the transactions table."""
