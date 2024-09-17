@@ -21,6 +21,7 @@
 - `Chế độ xem tóm tắt`: Cung cấp tổng quan về tổng thu nhập, chi phí và số dư hiện tại. Trình bày biểu đồ biểu diễn xu hướng thu nhập và chi phí theo thời gian.
 - `Thống kê`: Phân tích các mô hình chi tiêu bằng cách hiển thị biểu đồ được phân loại dựa trên nhóm giao dịch, tên và ghi chú.
 - `Chức năng tìm kiếm`: Người dùng có thể tìm kiếm các giao dịch cụ thể dựa trên các tiêu chí như tên giao dịch, loại, nhóm và phạm vi ngày.
+- `Chức năng xóa`: Trong chức năng tìm kiếm, người dùng có thể sử dụng chức năng xóa để xóa giao dịch bị lỗi ra khỏi hệ thống.
 - `Thông Tin Cá Nhân`: Người dùng có thể xem thông tin cá nhân và đăng xuất khỏi tài khoản.
 
 ## Công Nghệ Sử Dụng:
@@ -43,3 +44,8 @@ Sử dụng các tính năng cụ thể: Mỗi phần của menu cung cấp các
 
 ## Kết Luận:
 - Ứng dụng Expense Tracking này cung cấp một công cụ hữu ích cho người dùng để quản lý tài chính hiệu quả. Nó cung cấp các chức năng để ghi lại giao dịch, trực quan hóa dữ liệu và hiểu rõ hơn về thói quen chi tiêu. Với sự phát triển hơn nữa, nó có thể trở thành một công cụ quản lý tài chính cá nhân toàn diện hơn.
+
+## Hình Ảnh Mô Phỏng:
+| ![Login](App_Image/Login.png) | ![Register](App_Image/Register.png) | ![Overview](App_Image/Overview.png) |
+| ![Add Transaction](App_Image/AddTrans.png) | ![Statical](App_Image/Stats.png) | ![Search](App_Image/Search.png) |
+| ![Info](App_Image/info.png) |  |  |
