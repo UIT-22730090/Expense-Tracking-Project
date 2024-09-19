@@ -3,7 +3,7 @@ import sys
 
 def install_packages():
     # List of third-party packages (exclude standard libraries like tkinter and sqlite3)
-    required_packages = ["Pillow", "tkcalendar", "matplotlib", "seaborn", "pandas", "sqlite3"]
+    required_packages = ["Pillow", "tkcalendar", "matplotlib", "seaborn", "pandas"]
     
     # Install all packages at once
     try:
