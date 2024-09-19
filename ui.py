@@ -450,62 +450,45 @@ class MainApp:
         chart_frame = tk.Frame(self.info_frame)
         chart_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Fetch data from the database
-        income_by_note = get_data("""
-                                SELECT note, SUM(amount)  
-                                FROM transactions 
-                                WHERE transaction_type = 'Thu nhập'
-                                GROUP BY note
-                                ORDER BY SUM(amount) DESC""")
-        income_by_group = get_data("""
-                                SELECT group_name, SUM(amount) 
-                                FROM transactions 
-                                WHERE transaction_type = 'Thu nhập'
-                                GROUP BY group_name
-                                ORDER BY SUM(amount) DESC""")
-        income_by_name = get_data("""
-                                SELECT transaction_name, SUM(amount) 
-                                FROM transactions 
-                                WHERE transaction_type = 'Thu nhập'
-                                GROUP BY transaction_name
-                                ORDER BY SUM(amount) DESC""")
-        expense_by_note = get_data("""
-                                SELECT note, SUM(amount)  
-                                FROM transactions 
-                                WHERE transaction_type = 'Chi tiêu'
-                                GROUP BY note
-                                ORDER BY SUM(amount) DESC""")
-        expense_by_group = get_data("""
-                                SELECT group_name, SUM(amount) 
-                                FROM transactions 
-                                WHERE transaction_type = 'Chi tiêu'
-                                GROUP BY group_name
-                                ORDER BY SUM(amount) DESC""")
-        expense_by_name = get_data("""
-                                SELECT transaction_name, SUM(amount) 
-                                FROM transactions 
-                                WHERE transaction_type = 'Chi tiêu'
-                                GROUP BY transaction_name
-                                ORDER BY SUM(amount) DESC""")
+        transaction_types = ['Thu nhập', 'Chi tiêu']
+        queries = {
+            'by_note': "SELECT note, SUM(amount) FROM transactions WHERE transaction_type = '{}' AND username = '{}' GROUP BY note ORDER BY SUM(amount) DESC",
+            'by_group': "SELECT group_name, SUM(amount) FROM transactions WHERE transaction_type = '{}' AND username = '{}' GROUP BY group_name ORDER BY SUM(amount) DESC",
+            'by_name': "SELECT transaction_name, SUM(amount) FROM transactions WHERE transaction_type = '{}' AND username = '{}' GROUP BY transaction_name ORDER BY SUM(amount) DESC"
+        }
+
+        data = {}
+        for t in transaction_types:
+            for key, query in queries.items():
+                try:
+                    result = get_data(query.format(t, self.username))
+                    data[f"{t}_{key}"] = result if result else [(None, 0)]  # Handle no data case
+                except Exception as e:
+                    print(f"Error fetching data for {t} - {key}: {e}")
+                    data[f"{t}_{key}"] = [(None, 0)]  # Handle error case
 
         # Create a figure with subplots
-        fig, axs = plt.subplots(2, 3, figsize=(15, 10))  # Adjust size as needed
-        #fig.tight_layout(pad=10)  # Adjust padding between subplots
+        fig, axs = plt.subplots(2, 3, figsize=(15, 10))
         fig.subplots_adjust(left=0.05, right=0.95, top=0.90, bottom=0.10, wspace=0.2, hspace=1)
 
-        # Display the charts
-        self.display_bar_chart(axs[0, 0], income_by_group, "Total Income by Group")
-        self.display_bar_chart(axs[0, 1], income_by_name, "Total Income by Name")
-        self.display_bar_chart(axs[0, 2], income_by_note, "Detail Total Income")
+        chart_titles = {
+            'Thu nhập_by_group': "Total Income by Group",
+            'Thu nhập_by_name': "Total Income by Name",
+            'Thu nhập_by_note': "Detail Total Income",
+            'Chi tiêu_by_group': "Expense by Group",
+            'Chi tiêu_by_name': "Expense by Name",
+            'Chi tiêu_by_note': "Detail Total Expense"
+        }
 
-        self.display_bar_chart(axs[1, 0], expense_by_group, "Expense by Group")
-        self.display_bar_chart(axs[1, 1], expense_by_name, "Expense by Name")
-        self.display_bar_chart(axs[1, 2], expense_by_note, "Detail Total Expense")
+        for idx, (key, title) in enumerate(chart_titles.items()):
+            row, col = divmod(idx, 3)
+            self.display_bar_chart(axs[row, col], data[key], title)
 
         # Convert the figure to a Tkinter canvas and display it
         canvas = FigureCanvasTkAgg(fig, master=self.info_frame)
         canvas.draw()
         canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
 
     def display_bar_chart(self, ax, data, title, palette='viridis'):
         """Display a bar chart in the given axes."""
@@ -598,7 +581,7 @@ class MainApp:
     def perform_search(self, transaction_name, transaction_type, group_name, date_range):
         """Collects filter values, performs the search, and displays results."""
         # Fetch search results using the filters
-        search_results = search_transactions(transaction_name, transaction_type, group_name, date_range)
+        search_results = search_transactions(transaction_name, transaction_type, group_name, date_range, username = self.username)
 
         # Clear previous search results in the table
         for item in self.results_table.get_children():
