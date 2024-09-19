@@ -4,45 +4,6 @@ import sqlite3
 def create_database():
     conn = sqlite3.connect('expense_manager.db')
     cursor = conn.cursor()
-
-    cursor.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT NOT NULL UNIQUE,
-                password TEXT NOT NULL,
-                full_name TEXT NOT NULL,
-                birthday DATE NOT NULL,
-                email TEXT NOT NULL UNIQUE,
-                phone_number TEXT NOT NULL UNIQUE
-            )
-        ''')
-    # Create transaction types table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS transaction_types (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            type_name TEXT NOT NULL,  -- 'Thu nhập' or 'Chi tiêu'
-            group_name TEXT NOT NULL  -- 'Gia đình', 'Cá nhân', etc.
-        )
-    ''')
-
-    # Create transactions table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS transactions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            transaction_date DATE NOT NULL,
-            transaction_type TEXT NOT NULL,
-            group_name TEXT NOT NULL,
-            transaction_name TEXT NOT NULL,
-            amount REAL NOT NULL,
-            note TEXT,
-            username TEXT NOT NULL,
-            FOREIGN KEY (username) REFERENCES users(username)
-        )
-    ''')
-
-     # Insert sample data into users table
-    cursor.execute("INSERT OR IGNORE INTO users (username, password, full_name, birthday, email, phone_number) VALUES ('user1', '123', 'Nguyễn Nhóm 2', '2024-09-11', 'Nhoms2@ms.uit.edu.vn', '090xxxxxxxx')")
-
     # Insert sample data into transaction_types table
     cursor.execute('''
                 INSERT OR IGNORE INTO transaction_types (type_name, group_name) 

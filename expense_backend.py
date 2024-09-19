@@ -1,20 +1,9 @@
-import os
-import subprocess
-import sys
-
-DATABASE = 'expense_manager.db' 
-#create_table
-def install_packages():
-    # Ensure pip is up-to-date
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "pip"])
-
-    # Install packages from requirements.txt
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
-    
 import sqlite3
 import pandas as pd
 from tkinter import messagebox
 
+#create_table
+DATABASE = 'expense_manager.db' 
 def create_tables():
     """Create necessary tables if they do not exist."""
     conn = sqlite3.connect(DATABASE)
