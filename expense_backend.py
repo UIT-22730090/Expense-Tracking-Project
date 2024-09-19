@@ -333,8 +333,21 @@ def get_transactions(username):
     return transactions
 
 #search_transactions
-def search_transactions(transaction_name=None, transaction_type="All", group_name="All", date_range="All"):
-    """Search transactions based on filters: transaction name, transaction type, group name, and date range."""
+import sqlite3
+
+def search_transactions(transaction_name=None, transaction_type="All", group_name="All", date_range="All", username=""):
+    """Search transactions based on filters: transaction name, transaction type, group name, and date range.
+
+    Args:
+        transaction_name (str): Name of the transaction to search for.
+        transaction_type (str): Type of the transaction (e.g., 'Income', 'Expense', or 'All').
+        group_name (str): Name of the group to filter by (or 'All' for no filtering).
+        date_range (str): Time range for transactions ('Today', 'Last 7 Days', 'Last 30 Days', or 'All').
+        username (str): Username to filter transactions by.
+
+    Returns:
+        list: A list of tuples representing the transactions that match the search criteria.
+    """
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
 
@@ -342,23 +355,25 @@ def search_transactions(transaction_name=None, transaction_type="All", group_nam
     query = """
         SELECT id, transaction_date, transaction_type, group_name, transaction_name, amount, note
         FROM transactions
-        WHERE 1=1
+        WHERE username = ?
     """
-    params = []
+    params = [username]
 
     # Filter by transaction name if provided
     if transaction_name and transaction_name != "All":
         query += " AND transaction_name LIKE ?"
         params.append(f"%{transaction_name}%")
 
-    # Filter by date range if provided
+    # Dynamic date filtering
+    date_filters = {
+        "Today": "DATE(transaction_date) = DATE('now')",
+        "Last 7 Days": "DATE(transaction_date) >= DATE('now', '-7 days')",
+        "Last 30 Days": "DATE(transaction_date) >= DATE('now', '-30 days')"
+    }
+    
     if date_range != "All":
-        if date_range == "Today":
-            query += " AND DATE(transaction_date) = DATE('now')"
-        elif date_range == "Last 7 Days":
-            query += " AND DATE(transaction_date) >= DATE('now', '-7 days')"
-        elif date_range == "Last 30 Days":
-            query += " AND DATE(transaction_date) >= DATE('now', '-30 days')"
+        if date_range in date_filters:
+            query += f" AND {date_filters[date_range]}"
 
     # Filter by transaction type if not 'All'
     if transaction_type != "All":
@@ -370,10 +385,17 @@ def search_transactions(transaction_name=None, transaction_type="All", group_nam
         query += " AND group_name = ?"
         params.append(group_name)
 
-    cursor.execute(query, params)
-    results = cursor.fetchall()
-    conn.close()
+    try:
+        cursor.execute(query, params)
+        results = cursor.fetchall()
+    except Exception as e:
+        print(f"Error executing query: {e}")
+        results = []
+    finally:
+        conn.close()
+
     return results
+
 
 def delete_from_database(transaction_id):
     """Remove the transaction from the database based on the transaction ID."""
