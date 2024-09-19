@@ -16,7 +16,7 @@
 
 ## Tính Năng:
 - `Đăng nhập và Đăng ký`: Người dùng có thể tạo tài khoản và đăng nhập để truy cập dữ liệu tài chính của họ. 
-- `Quên mật khẩu`: Cho phép người dùng đăng ký lại mật khẩu(Lưu ý: Chức năng đăng ký hiện đang được phát triển.)
+- `Quên mật khẩu`: Cho phép người dùng đăng ký lại mật khẩu
 - `Quản lý giao dịch`: Người dùng có thể thêm giao dịch mới, bao gồm các chi tiết như ngày, loại (thu nhập hoặc chi phí), nhóm, tên, số tiền và ghi chú.
 - `Chế độ xem tóm tắt`: Cung cấp tổng quan về tổng thu nhập, chi phí và số dư hiện tại. Trình bày biểu đồ biểu diễn xu hướng thu nhập và chi phí theo thời gian.
 - `Thống kê`: Phân tích các mô hình chi tiêu bằng cách hiển thị biểu đồ được phân loại dựa trên nhóm giao dịch, tên và ghi chú.
