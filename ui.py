@@ -56,12 +56,91 @@ class LoginWindow:
             messagebox.showerror("Login Failed", "Invalid username or password")
 
     def forgot_password(self):
-        messagebox.showinfo("Forgot Password", "functionality coming soon.")
+        forgot_window = tk.Toplevel(self.master)
+        forgot_window.title("Forgot Password")
+        forgot_window.geometry("400x200")
+
+        # First window to enter username and email
+        tk.Label(forgot_window, text="Username:").grid(row=0, column=0, padx=10, pady=5, sticky="e")
+        username_entry = tk.Entry(forgot_window)
+        username_entry.grid(row=0, column=1, padx=10, pady=5)
+
+        tk.Label(forgot_window, text="Email:").grid(row=1, column=0, padx=10, pady=5, sticky="e")
+        email_entry = tk.Entry(forgot_window)
+        email_entry.grid(row=1, column=1, padx=10, pady=5)
+
+        def verify_username_email():
+            username = username_entry.get().strip()
+            email = email_entry.get().strip()
+
+            # Check if username and email are valid
+            if verify_user_email(username, email):  # Assuming verify_user_email() checks user info in DB
+                # Close the first window and open the next window for security question
+                forgot_window.destroy()
+
+                # Create a new window for security question and password reset
+                reset_password_window = tk.Toplevel(self.master)
+                reset_password_window.title("Security Question")
+                reset_password_window.geometry("400x300")
+
+                security_question = get_security_question(username)
+
+                tk.Label(reset_password_window, text=f"{security_question}: ").grid(row=0, column=0, padx=10, pady=5, sticky="e")
+                security_answer_entry = tk.Entry(reset_password_window)
+                security_answer_entry.grid(row=0, column=1, padx=10, pady=5)
+
+                def verify_security_and_reset():
+                    security_answer = security_answer_entry.get().strip()
+
+                    # Verify security answer
+                    if verify_user_info(username, email, security_answer):
+                        # Open another window to enter new password
+                        new_password_window = tk.Toplevel(reset_password_window)
+                        new_password_window.title("Reset Password")
+                        new_password_window.geometry("400x200")
+
+                        tk.Label(new_password_window, text="New Password:").grid(row=0, column=0, padx=10, pady=5, sticky="e")
+                        new_password_entry = tk.Entry(new_password_window, show="*")
+                        new_password_entry.grid(row=0, column=1, padx=10, pady=5)
+
+                        tk.Label(new_password_window, text="Re-enter New Password:").grid(row=1, column=0, padx=10, pady=5, sticky="e")
+                        re_new_password_entry = tk.Entry(new_password_window, show="*")
+                        re_new_password_entry.grid(row=1, column=1, padx=10, pady=5)
+
+                        def update_password():
+                            new_password = new_password_entry.get().strip()
+                            re_new_password = re_new_password_entry.get().strip()
+
+                            if new_password == re_new_password:
+                                # Update the password in the database
+                                if update_user_password(username, new_password):
+                                    messagebox.showinfo("Password Reset", "Your password has been successfully reset.")
+                                    new_password_window.destroy()
+                                    reset_password_window.destroy()
+                                else:
+                                    messagebox.showerror("Error", "Unable to reset password.")
+                            else:
+                                messagebox.showerror("Error", "Passwords do not match.")
+
+                        submit_new_password_button = tk.Button(new_password_window, text="Submit", command=update_password)
+                        submit_new_password_button.grid(row=2, column=0, columnspan=2, pady=10)
+                    else:
+                        messagebox.showerror("Verification Failed", "Invalid security answer. Please try again.")
+
+                submit_security_button = tk.Button(reset_password_window, text="Submit", command=verify_security_and_reset)
+                submit_security_button.grid(row=1, column=0, columnspan=2, pady=10)
+
+            else:
+                messagebox.showerror("Error", "Invalid username or email.")
+
+        submit_button = tk.Button(forgot_window, text="Submit", command=verify_username_email)
+        submit_button.grid(row=2, column=0, columnspan=2, pady=10)
+
 
     def register(self):
         register_window = tk.Toplevel(self.master)
         register_window.title("Register")
-        register_window.geometry("400x500")
+        register_window.geometry("400x550")
 
         # Create input fields
         tk.Label(register_window, text="Full Name:").grid(row=0, column=0, padx=10, pady=5, sticky="e")
@@ -92,15 +171,28 @@ class LoginWindow:
         phone_entry = tk.Entry(register_window)
         phone_entry.grid(row=6, column=1, padx=10, pady=5)
 
+        # Security question dropdown
+        tk.Label(register_window, text="Select a Security Question:").grid(row=7, column=0, padx=10, pady=5, sticky="e")
+        security_question_var = tk.StringVar(register_window)
+        security_question_options = ["What is your pet's name?", "What is your mother's maiden name?", 
+                                    "What was the name of your first school?", "What is your favorite book?"]
+        security_question_menu = tk.OptionMenu(register_window, security_question_var, *security_question_options)
+        security_question_menu.grid(row=7, column=1, padx=10, pady=5)
+
+        # Security answer entry
+        tk.Label(register_window, text="Answer:").grid(row=8, column=0, padx=10, pady=5, sticky="e")
+        security_answer_entry = tk.Entry(register_window)
+        security_answer_entry.grid(row=8, column=1, padx=10, pady=5)
+
         # Variable to store the selected option for sample transaction
         sample_var = tk.StringVar(value="Yes")
 
-        tk.Label(register_window, text="Create Sample Transaction:").grid(row=7, column=0, padx=10, pady=5, sticky="e")
-        tk.Radiobutton(register_window, text="Yes", variable=sample_var, value="Yes").grid(row=7, column=1, padx=10, pady=5, sticky="w")
-        tk.Radiobutton(register_window, text="No", variable=sample_var, value="No").grid(row=7, column=1, padx=10, pady=5, sticky="e")
+        tk.Label(register_window, text="Create Sample Transaction:").grid(row=9, column=0, padx=10, pady=5, sticky="e")
+        tk.Radiobutton(register_window, text="Yes", variable=sample_var, value="Yes").grid(row=9, column=1, padx=10, pady=5, sticky="w")
+        tk.Radiobutton(register_window, text="No", variable=sample_var, value="No").grid(row=9, column=1, padx=10, pady=5, sticky="e")
 
         def submit_action():
-            # Retrieve the most recent input from the entry fields and radio button
+            # Retrieve the input from the fields
             full_name = full_name_entry.get().strip()
             username = username_entry.get().strip()
             password = password_entry.get().strip()
@@ -108,22 +200,22 @@ class LoginWindow:
             birthday = birthday_entry.get().strip()
             email = email_entry.get().strip()
             phone_number = phone_entry.get().strip()
+            security_question = security_question_var.get()
+            security_answer = security_answer_entry.get().strip()
             sample = sample_var.get()
-            # Call the register_user function with the latest input
-            # Call the register_user function with the latest input
-            if register_user(full_name, username, password, re_password, birthday, email, phone_number):
+
+            # Validate and register the user
+            if register_user(full_name, username, password, re_password, birthday, email, phone_number, security_question, security_answer):
                 if sample == "Yes":
                     add_sample_transaction(username)
                 register_window.destroy()
 
         submit_button = tk.Button(register_window, text="Submit", command=submit_action)
-        submit_button.grid(row=8, column=0, columnspan=2, pady=10)
+        submit_button.grid(row=10, column=0, columnspan=2, pady=10)
         
-
     def on_close(self):
         if messagebox.askokcancel("Quit", "Do you want to quit?"):
             self.master.quit()  # Use quit() to exit the mainloop and close the window
-
 class MainApp:
     def __init__(self, master, username):
         self.master = master
@@ -256,7 +348,6 @@ class MainApp:
         canvas = FigureCanvasTkAgg(fig, master=self.info_frame)
         canvas.draw()
         canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-
 
     def add_transaction(self):
         # Clear the current frame

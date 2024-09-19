@@ -1,7 +1,9 @@
 from ui import *
 from expense_backend import *
+from install_dependencies import *
 
 if __name__ == "__main__":
+    
     create_tables()  
     root = tk.Tk()
     app = LoginWindow(root)
