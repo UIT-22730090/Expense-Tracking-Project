@@ -1,10 +1,20 @@
+import os
+import subprocess
+import sys
+
+DATABASE = 'expense_manager.db' 
+#create_table
+def install_packages():
+    # Ensure pip is up-to-date
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "pip"])
+
+    # Install packages from requirements.txt
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
+    
 import sqlite3
 import pandas as pd
 from tkinter import messagebox
 
-DATABASE = 'expense_manager.db' 
-
-#create_table
 def create_tables():
     """Create necessary tables if they do not exist."""
     conn = sqlite3.connect(DATABASE)
@@ -17,7 +27,9 @@ def create_tables():
             full_name TEXT NOT NULL,
             birthday DATE NOT NULL,
             email TEXT NOT NULL UNIQUE,
-            phone_number TEXT NOT NULL UNIQUE
+            phone_number TEXT NOT NULL UNIQUE,
+            security_question TEXT NOT NULL,
+            security_answer TEXT NOT NULL
         )
     ''')
     cursor.execute('''
@@ -92,7 +104,7 @@ def create_tables():
     conn.commit()
     conn.close()
 
-def register_user(full_name, username, password, re_password,birthday, email, phone_number):
+def register_user(full_name, username, password, re_password, birthday, email, phone_number, security_question, security_answer):
     """Insert a new user into the database with password confirmation and error handling."""
     
     # Ensure password confirmation matches
@@ -101,7 +113,7 @@ def register_user(full_name, username, password, re_password,birthday, email, ph
         return False
     
     # Check if any fields are empty
-    if not all([full_name, username, password, birthday, email, phone_number]):
+    if not all([full_name, username, password, re_password, birthday, email, phone_number, security_question, security_answer]):
         messagebox.showerror("Error", "All fields must be filled out.")
         return False
 
@@ -109,9 +121,9 @@ def register_user(full_name, username, password, re_password,birthday, email, ph
         conn = sqlite3.connect(DATABASE)
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO users (full_name, username, password, birthday, email, phone_number)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (full_name, username, password, birthday, email, phone_number))
+            INSERT INTO users (full_name, username, password, birthday, email, phone_number, security_question, security_answer)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (full_name, username, password, birthday, email, phone_number, security_question, security_answer))
         conn.commit()
         conn.close()
         
@@ -231,6 +243,47 @@ def add_sample_transaction(username):
     except sqlite3.Error as e:
         print(f"Database error: {e}")
 
+def verify_user_email(username, email):
+    try:
+        # Use 'with' to automatically manage the connection and ensure it closes
+        with sqlite3.connect(DATABASE) as connection:
+            cursor = connection.cursor()
+            # Check if a user exists with the provided username and email
+            cursor.execute("SELECT * FROM users WHERE username=? AND email=?", (username, email))
+            user = cursor.fetchone()
+            return user is not None  # Returns True if user exists, False otherwise
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+        return False
+
+def verify_user_info(username, email, security_answer):
+    connection = sqlite3.connect(DATABASE)
+    cursor = connection.cursor()
+    cursor.execute("SELECT * FROM users WHERE username=? AND email=? AND security_answer=?", (username, email, security_answer))
+    user = cursor.fetchone()
+    connection.close()
+    return user is not None
+
+def get_security_question(username):
+    connection = sqlite3.connect(DATABASE)
+    cursor = connection.cursor()
+    cursor.execute("SELECT security_question FROM users WHERE username=?", (username,))
+    user = cursor.fetchone()  # This returns a tuple like (security_question,)
+    connection.close()
+    if user:  # Check if user is not None
+        return user[0]  # Return the first element of the tuple (the security question)
+    else:
+        return None
+
+def update_user_password(username, new_password):
+    connection = sqlite3.connect(DATABASE)
+    cursor = connection.cursor()
+    cursor.execute("UPDATE users SET password=? WHERE username=?", (new_password, username))
+    connection.commit()
+    updated_rows = cursor.rowcount
+    connection.close()
+
+    return updated_rows > 0
 #login_account
 def login(username, password):
     """Check if the user exists with the provided username and password."""
